@@ -5,6 +5,7 @@ import tweepy
 import json
 from datetime import date, datetime
 import time
+import sys
 # import dateutil.parser
 
 def json_serial(obj):
@@ -40,20 +41,11 @@ def limit_handled(cursor):
             yield cursor.next()
         except tweepy.RateLimitError:
             time.sleep(15 * 60)
-    for follower in limit_handled(tweepy.Cursor(api.followers).items()):
-        if follower.friends_count < 300:
-            print follower.screen_name
-
-# if __name__ == '__main__':
-#     l = StdOutListener()
-#     auth = OAuthHandler(consumer_key, consumer_secret)
-#     auth.set_access_token(access_token, access_token_secret)
-#     myStream = tweepy.Stream(auth, l)
-#     myStream.filter(track=['$NVDA', '$AMD', 'nvidia', 'amd'])
 
 if __name__ == '__main__':
+
     # Maximum number of tweets we want to collect
-    maxTweets = 1000000
+    maxTweets = int(sys.argv[1])
 
     # The twitter Search API allows up to 100 tweets per query
     tweetsPerQry = 100
@@ -63,10 +55,16 @@ if __name__ == '__main__':
     api = tweepy.API(auth,wait_on_rate_limit=True,wait_on_rate_limit_notify=True)
     # api.rate_limit_status()['resources']['search']
 
+    if sys.argv[2] == "nvda":
+        search = 'nvda OR nvidia OR gtx OR "jensen huang" OR "chris malachowsky" OR "curtis priem" OR tesla OR gpu OR bitcoin OR gaming'
+    elif sys.argv[2] == "amd":
+        search = 'amd OR ryzen OR threadripper OR radeon OR "jerry sanders" OR "lisa su" OR gpu OR bitcoin OR gaming'
+
+
     filename = "data/tweets" + time.strftime("%Y%m%d-%H%M%S") + ".txt"
 
     with open(filename, "a") as myfile:
-        for tweet in limit_handled(tweepy.Cursor(api.search, q='"nvda"', lang="en", rpp=tweetsPerQry, result_type="recent").items(maxTweets)):
+        for tweet in limit_handled(tweepy.Cursor(api.search, q=search, lang="en", rpp=tweetsPerQry, result_type="recent").items(maxTweets)):
             res = {}
             res["text"] = tweet.text
             res["id"] = tweet.id
@@ -74,3 +72,10 @@ if __name__ == '__main__':
             r = json.dumps(res, default=json_serial)
             print r
             myfile.write(json.dumps(res, default=json_serial))
+
+# if __name__ == '__main__':
+#     l = StdOutListener()
+#     auth = OAuthHandler(consumer_key, consumer_secret)
+#     auth.set_access_token(access_token, access_token_secret)
+#     myStream = tweepy.Stream(auth, l)
+#     myStream.filter(track=['$NVDA', '$AMD', 'nvidia', 'amd'])
