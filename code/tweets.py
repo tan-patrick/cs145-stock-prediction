@@ -50,28 +50,61 @@ if __name__ == '__main__':
     # The twitter Search API allows up to 100 tweets per query
     tweetsPerQry = 100
 
-    auth = tweepy.AppAuthHandler(consumer_key, consumer_secret)
-    # auth.set_access_token(access_token, access_token_secret)
+    # auth = tweepy.AppAuthHandler(consumer_key, consumer_secret)
+    auth = OAuthHandler(consumer_key, consumer_secret)
+    auth.set_access_token(access_token, access_token_secret)
     api = tweepy.API(auth,wait_on_rate_limit=True,wait_on_rate_limit_notify=True)
-    # api.rate_limit_status()['resources']['search']
+    # print api.rate_limit_status()['resources']['search']
 
     if sys.argv[2] == "nvda":
         search = 'nvda OR nvidia OR gtx OR "jensen huang" OR "chris malachowsky" OR "curtis priem" OR tesla OR gpu OR bitcoin OR gaming'
     elif sys.argv[2] == "amd":
         search = 'amd OR ryzen OR threadripper OR radeon OR "jerry sanders" OR "lisa su" OR gpu OR bitcoin OR gaming'
 
+    i = {}
+    i["tweets"] = []
+    cur = {}
+    cur["tweets"] = []
+    counter = 0
 
-    filename = "data/tweets" + time.strftime("%Y%m%d-%H%M%S") + ".txt"
-
-    with open(filename, "a") as myfile:
-        for tweet in limit_handled(tweepy.Cursor(api.search, q=search, lang="en", rpp=tweetsPerQry, result_type="recent").items(maxTweets)):
+    try:
+        for tweet in tweepy.Cursor(api.search, q=search, lang="en", rpp=tweetsPerQry, result_type="recent").items(maxTweets):
             res = {}
             res["text"] = tweet.text
             res["id"] = tweet.id
             res["date"] = tweet.created_at
-            r = json.dumps(res, default=json_serial)
-            print r
-            myfile.write(json.dumps(res, default=json_serial))
+            i["tweets"].append(res)
+            cur["tweets"].append(res)
+            counter += 1
+            # print counter, res
+            if counter >= 5000:
+                filename = "code/data/tweets" + time.strftime("%Y%m%d-%H%M%S") + ".txt"
+                with open(filename, "a") as myfile:
+                    toWrite = json.dumps(cur, default=json_serial)
+                    myfile.write(toWrite)
+                counter = 0
+                cur["tweets"] = []
+
+        if counter > 0:
+            filename = "code/data/tweets" + time.strftime("%Y%m%d-%H%M%S") + ".txt"
+            with open(filename, "a") as myfile:
+                toWrite = json.dumps(cur, default=json_serial)
+                myfile.write(toWrite)
+            counter = 0
+            cur["tweets"] = []
+
+        with open("sample_tweets.json", "wb") as myfile:
+            myfile.write(json.dumps(i, default=json_serial))
+    except:
+        if counter > 0:
+            filename = "code/data/tweets" + time.strftime("%Y%m%d-%H%M%S") + ".txt"
+            with open(filename, "a") as myfile:
+                toWrite = json.dumps(cur, default=json_serial)
+                myfile.write(toWrite)
+            counter = 0
+            cur["tweets"] = []
+
+    # print api.rate_limit_status()['resources']['search']
 
 # if __name__ == '__main__':
 #     l = StdOutListener()
